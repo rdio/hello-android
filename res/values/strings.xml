@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="app_name">Rdio API Example</string>
+    <string name="getting_user">Looking up current user...</string>
+    <string name="getting_collection">Loading collection...</string>
+    <string name="getting_heavy_rotation">Loading Rdio heavy rotation...</string>
+    <string name="now_playing">Playing: %1$s from %2$s by %3$s</string>
+    <string name="noauth_getheavyrotation"></string>
+    <string name="no_more_tracks">Heavy rotation depleted... why not go install the Rdio app now?</string>
+</resources>
