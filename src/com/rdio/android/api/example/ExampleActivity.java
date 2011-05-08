@@ -39,10 +39,10 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import com.rdio.android.api.Rdio;
-import com.rdio.android.api.Rdio.SubscriptionType;
 import com.rdio.android.api.RdioApiCallback;
 import com.rdio.android.api.RdioListener;
 import com.rdio.android.api.services.RdioAuthorisationException;
+import com.rdio.android.api.RdioSubscriptionType;
 
 import android.app.Activity;
 import android.app.Dialog;
@@ -284,7 +284,7 @@ public class ExampleActivity extends Activity implements RdioListener {
 	 * Requires authorisation and the Rdio app to be installed.
 	 */
 	private void doSomething() {
-		if (rdio.getSubscriptionState() == SubscriptionType.ANONYMOUS) {
+		if (rdio.getSubscriptionState() == RdioSubscriptionType.ANONYMOUS) {
 			doSomethingWithoutApp();
 			return;
 		}
@@ -323,7 +323,7 @@ public class ExampleActivity extends Activity implements RdioListener {
 	}
 
 	private void LoadMoreTracks() {
-		if (rdio.getSubscriptionState() == SubscriptionType.ANONYMOUS) {
+		if (rdio.getSubscriptionState() == RdioSubscriptionType.ANONYMOUS) {
 			Log.i(TAG, "Anonymous user! No more tracks to play.");
 
 			// Notify the user we're out of tracks
