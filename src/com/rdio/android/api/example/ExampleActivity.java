@@ -1,16 +1,16 @@
 /*
  Copyright (c) 2011 Rdio Inc
- 
+
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
  in the Software without restriction, including without limitation the rights
  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  copies of the Software, and to permit persons to whom the Software is
  furnished to do so, subject to the following conditions:
- 
+
  The above copyright notice and this permission notice shall be included in
  all copies or substantial portions of the Software.
- 
+
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -42,12 +42,10 @@ import com.rdio.android.api.Rdio;
 import com.rdio.android.api.RdioApiCallback;
 import com.rdio.android.api.RdioListener;
 import com.rdio.android.api.services.RdioAuthorisationException;
-import com.rdio.android.api.RdioSubscriptionType;
+import com.rdio.android.api.OAuth1WebViewActivity;
 
 import android.app.Activity;
-import android.app.Dialog;
-import android.app.ProgressDialog;
-import android.content.ActivityNotFoundException;
+import android.app.DialogFragment;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
@@ -83,14 +81,6 @@ public class ExampleActivity extends Activity implements RdioListener {
 	private static String accessToken = null;
 	private static String accessTokenSecret = null;
 
-	// Request code used for startActivityForResult/onActivityResult
-	private static final int REQUEST_AUTHORISE_APP = 100;
-
-	// Dialog codes used for createDialog
-	private static final int DIALOG_GETTING_USER = 100;
-	private static final int DIALOG_GETTING_COLLECTION = 101;
-	private static final int DIALOG_GETTING_HEAVY_ROTATION = 102;
-
 	private static final String PREF_ACCESSTOKEN = "prefs.accesstoken";
 	private static final String PREF_ACCESSTOKENSECRET = "prefs.accesstokensecret";
 
@@ -98,6 +88,10 @@ public class ExampleActivity extends Activity implements RdioListener {
 
 	private ImageView albumArt;
 	private ImageView playPause;
+
+	private DialogFragment getUserDialog;
+	private DialogFragment getCollectionDialog;
+	private DialogFragment getHeavyRotationDialog;
 
 	// Our model for the metadata for a track that we care about
 	private class Track {
@@ -123,25 +117,32 @@ public class ExampleActivity extends Activity implements RdioListener {
 
 		trackQueue = new LinkedList<Track>();
 
-		// Initialise our Rdio object.  If we have cached access credentials, then use them - otherwise
-		// initialise w/ null values and the user will be prompted (if the Rdio app is installed), or
+		// Initialize our Rdio object.  If we have cached access credentials, then use them - otherwise
+		// Initialize w/ null values and the user will be prompted (if the Rdio app is installed), or
 		// we'll fallback to 30s samples.
 		if (rdio == null) {
 			SharedPreferences settings = getPreferences(MODE_PRIVATE);
 			accessToken = settings.getString(PREF_ACCESSTOKEN, null);
 			accessTokenSecret = settings.getString(PREF_ACCESSTOKENSECRET, null);
 
+			rdio = new Rdio(appKey, appSecret, accessToken, accessTokenSecret, this, this);
+
 			if (accessToken == null || accessTokenSecret == null) {
 				// If either one is null, reset both of them
 				accessToken = accessTokenSecret = null;
+				Intent myIntent = new Intent(ExampleActivity.this,
+						OAuth1WebViewActivity.class);
+				myIntent.putExtra(OAuth1WebViewActivity.EXTRA_CONSUMER_KEY, appKey);
+				myIntent.putExtra(OAuth1WebViewActivity.EXTRA_CONSUMER_SECRET, appSecret);
+				ExampleActivity.this.startActivityForResult(myIntent, 1);
+
 			} else {
 				Log.d(TAG, "Found cached credentials:");
 				Log.d(TAG, "Access token: " + accessToken);
 				Log.d(TAG, "Access token secret: " + accessTokenSecret);
+				rdio.prepareForPlayback();
 			}
 
-			// Initialise our API object
-			rdio = new Rdio(appKey, appSecret, accessToken, accessTokenSecret, this, this);	
 		}
 
 		ImageView i = (ImageView)findViewById(R.id.next);
@@ -187,7 +188,7 @@ public class ExampleActivity extends Activity implements RdioListener {
 	private void doSomethingWithoutApp() {
 		Log.i(TAG, "Getting heavy rotation");
 
-		showDialog(DIALOG_GETTING_HEAVY_ROTATION);
+		showGetHeavyRotationDialog();
 
 		List<NameValuePair> args = new LinkedList<NameValuePair>();
 		args.add(new BasicNameValuePair("type", "albums"));
@@ -254,11 +255,9 @@ public class ExampleActivity extends Activity implements RdioListener {
 								}
 								if (trackKeys.size() > 1)
 									trackQueue.addAll(trackKeys);
-								dismissDialog(DIALOG_GETTING_HEAVY_ROTATION);
+								dismissGetHeavyRotationDialog();
 
-								// If we're not playing something, then load something up
-								if (player == null || !player.isPlaying())
-									next(true);
+								next(true);
 							} catch (Exception e) {
 								Log.e(TAG, "Failed to handle JSONObject: ", e);
 							}
@@ -267,13 +266,13 @@ public class ExampleActivity extends Activity implements RdioListener {
 				} catch (Exception e) {
 					Log.e(TAG, "Failed to handle JSONObject: ", e);
 				} finally {
-					dismissDialog(DIALOG_GETTING_HEAVY_ROTATION);
+					dismissGetHeavyRotationDialog();
 				}
 			}
 
 			@Override
 			public void onApiFailure(String methodName, Exception e) {
-				dismissDialog(DIALOG_GETTING_HEAVY_ROTATION);
+				dismissGetHeavyRotationDialog();
 				Log.e(TAG, "getHeavyRotation failed. ", e);
 			}
 		});
@@ -281,16 +280,16 @@ public class ExampleActivity extends Activity implements RdioListener {
 
 	/**
 	 * Get the current user, and load their collection to start playback with.
-	 * Requires authorisation and the Rdio app to be installed.
+	 * Requires authorization and the Rdio app to be installed.
 	 */
 	private void doSomething() {
-		if (rdio.getSubscriptionState() == RdioSubscriptionType.ANONYMOUS) {
+		if (accessToken == null || accessTokenSecret == null) {
 			doSomethingWithoutApp();
 			return;
 		}
 
 		Log.i(TAG, "Getting current user");
-		showDialog(DIALOG_GETTING_USER);
+		showGetUserDialog();
 
 		// Get the current user so we can find out their user ID and get their collection key
 		List<NameValuePair> args = new LinkedList<NameValuePair>();
@@ -298,7 +297,7 @@ public class ExampleActivity extends Activity implements RdioListener {
 		rdio.apiCall("currentUser", args, new RdioApiCallback() {
 			@Override
 			public void onApiSuccess(JSONObject result) {
-				dismissDialog(DIALOG_GETTING_USER);
+				dismissGetUserDialog();
 				try {
 					result = result.getJSONObject("result");
 					Log.i(TAG, result.toString(2));
@@ -313,7 +312,7 @@ public class ExampleActivity extends Activity implements RdioListener {
 			}
 			@Override
 			public void onApiFailure(String methodName, Exception e) {
-				dismissDialog(DIALOG_GETTING_USER);
+				dismissGetUserDialog();
 				Log.e(TAG, "getCurrentUser failed. ", e);
 				if (e instanceof RdioAuthorisationException) {
 					doSomethingWithoutApp();
@@ -323,14 +322,14 @@ public class ExampleActivity extends Activity implements RdioListener {
 	}
 
 	private void LoadMoreTracks() {
-		if (rdio.getSubscriptionState() == RdioSubscriptionType.ANONYMOUS) {
+		if (accessToken == null || accessTokenSecret == null) {
 			Log.i(TAG, "Anonymous user! No more tracks to play.");
 
 			// Notify the user we're out of tracks
 			Toast.makeText(this, getString(R.string.no_more_tracks), Toast.LENGTH_LONG).show();
 
 			// Then helpfully point them to the market to go install Rdio ;)
-			Intent installRdioIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("market://search?q=pname:com.rdio.android.ui")); 
+			Intent installRdioIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("market://search?q=pname:com.rdio.android.ui"));
 			installRdioIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 			startActivity(installRdioIntent);
 
@@ -338,14 +337,14 @@ public class ExampleActivity extends Activity implements RdioListener {
 			return;
 		}
 
-		showDialog(DIALOG_GETTING_COLLECTION);
+		showGetCollectionDialog();
 		List<NameValuePair> args = new LinkedList<NameValuePair>();
 		args.add(new BasicNameValuePair("keys", collectionKey));
 		args.add(new BasicNameValuePair("count", "50"));
 		rdio.apiCall("get", args, new RdioApiCallback() {
 			@Override
 			public void onApiFailure(String methodName, Exception e) {
-				dismissDialog(DIALOG_GETTING_COLLECTION);
+				dismissGetCollectionDialog();
 				Log.e(TAG, methodName + " failed: ", e);
 			}
 
@@ -368,17 +367,15 @@ public class ExampleActivity extends Activity implements RdioListener {
 					}
 					if (trackKeys.size() > 1)
 						trackQueue.addAll(trackKeys);
-					dismissDialog(DIALOG_GETTING_COLLECTION);
+					dismissGetCollectionDialog();
 
-					// If we're not playing something, then load something up
-					if (player == null || !player.isPlaying())
-						next(true);
+					next(true);
 
 				} catch (Exception e) {
-					dismissDialog(DIALOG_GETTING_COLLECTION);
+					dismissGetCollectionDialog();
 					Log.e(TAG, "Failed to handle JSONObject: ", e);
 				}
-			}    		
+			}
 		});
 	}
 
@@ -437,20 +434,20 @@ public class ExampleActivity extends Activity implements RdioListener {
 				try {
 					String artworkUrl = track.albumArt.replace("square-200", "square-600");
 					Log.i(TAG, "Downloading album art: " + artworkUrl);
-					Bitmap bm = null; 
-					try { 
-						URL aURL = new URL(artworkUrl); 
-						URLConnection conn = aURL.openConnection(); 
-						conn.connect(); 
-						InputStream is = conn.getInputStream(); 
-						BufferedInputStream bis = new BufferedInputStream(is); 
-						bm = BitmapFactory.decodeStream(bis); 
-						bis.close(); 
-						is.close(); 
-					} catch (IOException e) { 
-						Log.e(TAG, "Error getting bitmap", e); 
-					} 
-					return bm; 				
+					Bitmap bm = null;
+					try {
+						URL aURL = new URL(artworkUrl);
+						URLConnection conn = aURL.openConnection();
+						conn.connect();
+						InputStream is = conn.getInputStream();
+						BufferedInputStream bis = new BufferedInputStream(is);
+						bm = BitmapFactory.decodeStream(bis);
+						bis.close();
+						is.close();
+					} catch (IOException e) {
+						Log.e(TAG, "Error getting bitmap", e);
+					}
+					return bm;
 				} catch (Exception e) {
 					Log.e(TAG, "Error downloading artwork", e);
 					return null;
@@ -497,35 +494,25 @@ public class ExampleActivity extends Activity implements RdioListener {
 	 *************************/
 
 	/*
-	 * Dispatched by the Rdio object when the Rdio object is done initialising, and a connection
-	 * to the Rdio app service has been established.  If authorised is true, then we reused our
+	 * Dispatched by the Rdio object when the Rdio object is done initializing, and a connection
+	 * to the Rdio app service has been established.  If authorized is true, then we reused our
 	 * existing OAuth credentials, and the API is ready for use.
 	 * @see com.rdio.android.api.RdioListener#onRdioReady()
 	 */
 	@Override
-	public void onRdioReady() {
-		Log.i(TAG, "User state is " + rdio.getSubscriptionState() + " fullstream " + rdio.canUserPlayFullStreams());
-		doSomething();
+	public void onRdioReadyForPlayback() {
+		Log.i(TAG, "Rdio SDK is ready for playback");
+
+		if (accessToken != null && accessTokenSecret != null) {
+			doSomething();
+		} else {
+			doSomethingWithoutApp();
+		}
 	}
 
 	@Override
 	public void onRdioUserPlayingElsewhere() {
-		Log.w(TAG, "Tell the user tha playback is stopping.");
-	}
-
-	/*
-	 * Dispatched by the Rdio object when app approval is needed.  Take the authorisation intent given
-	 * and invoke the activity for it
-	 * @see com.rdio.android.api.RdioListener#onRdioUserAppApprovalNeeded(android.content.Intent)
-	 */
-	@Override
-	public void onRdioUserAppApprovalNeeded(Intent authorisationIntent) {
-		try {
-			startActivityForResult(authorisationIntent, REQUEST_AUTHORISE_APP);
-		} catch (ActivityNotFoundException e) {
-			// Rdio app not found
-			Log.e(TAG, "Rdio app not found, limited to 30s samples.");
-		}
+		Log.w(TAG, "Tell the user that playback is stopping.");
 	}
 
 	/*
@@ -545,39 +532,101 @@ public class ExampleActivity extends Activity implements RdioListener {
 		editor.putString(PREF_ACCESSTOKEN, accessToken);
 		editor.putString(PREF_ACCESSTOKENSECRET, accessTokenSecret);
 		editor.commit();
-
-		doSomething();
 	}
 
 	/*************************
 	 * Activity overrides
-	 *************************/	
-	@Override
-	protected Dialog onCreateDialog(int id) {
-		switch (id) {
-		case DIALOG_GETTING_USER:
-			return ProgressDialog.show(this, "", getResources().getString(R.string.getting_user));
-		case DIALOG_GETTING_COLLECTION:
-			return ProgressDialog.show(this, "", getResources().getString(R.string.getting_collection));
-		case DIALOG_GETTING_HEAVY_ROTATION:
-			return ProgressDialog.show(this, "", getResources().getString(R.string.getting_heavy_rotation));
-		}
-		return null;
-	}
-
+	 *************************/
 	@Override
 	public void onActivityResult(int requestCode, int resultCode, Intent data) {
-		switch (requestCode) {
-		case REQUEST_AUTHORISE_APP:
-			if (resultCode == Rdio.RESULT_AUTHORISATION_ACCEPTED) {
-				Log.i(TAG, "User authorised our app.");
-				rdio.setTokenAndSecret(data);					
-			} else if (resultCode == Rdio.RESULT_AUTHORISATION_REJECTED) {
-				Log.i(TAG, "User rejected our app.");
+		if (requestCode == 1) {
+			if (resultCode == RESULT_OK) {
+				Log.v(TAG, "Login success");
+				if (data != null) {
+					accessToken = data.getStringExtra("token");
+					accessTokenSecret = data.getStringExtra("tokenSecret");
+					onRdioAuthorised(accessToken, accessTokenSecret);
+					rdio.setTokenAndSecret(accessToken, accessTokenSecret);
+				}
+			} else if (resultCode == RESULT_CANCELED) {
+				if (data != null) {
+					String errorCode = data.getStringExtra(OAuth1WebViewActivity.EXTRA_ERROR_CODE);
+					String errorDescription = data.getStringExtra(OAuth1WebViewActivity.EXTRA_ERROR_DESCRIPTION);
+					Log.v(TAG, "ERROR: " + errorCode + " - " + errorDescription);
+				}
+				accessToken = null;
+				accessTokenSecret = null;
 			}
-			break;
-		default:
-			break;
+			rdio.prepareForPlayback();
+		}
+	}
+
+	/*************************
+	 * Dialog helpers
+	 *************************/
+	private void showGetUserDialog() {
+		if (getUserDialog == null) {
+			getUserDialog = new RdioProgress();
+		}
+
+		if (getUserDialog.isAdded()) {
+			return;
+		}
+
+		Bundle args = new Bundle();
+		args.putString("message", getResources().getString(R.string.getting_user));
+
+		getUserDialog.setArguments(args);
+		getUserDialog.show(getFragmentManager(), "getUserDialog");
+	}
+
+	private void dismissGetUserDialog() {
+		if (getUserDialog != null) {
+			getUserDialog.dismiss();
+		}
+	}
+
+	private void showGetCollectionDialog() {
+		if (getCollectionDialog == null) {
+			getCollectionDialog = new RdioProgress();
+		}
+
+		if (getCollectionDialog.isAdded()) {
+			return;
+		}
+
+		Bundle args = new Bundle();
+		args.putString("message", getResources().getString(R.string.getting_collection));
+
+		getCollectionDialog.setArguments(args);
+		getCollectionDialog.show(getFragmentManager(), "getCollectionDialog");
+	}
+
+	private void dismissGetCollectionDialog() {
+		if (getCollectionDialog != null) {
+			getCollectionDialog.dismiss();
+		}
+	}
+
+	private void showGetHeavyRotationDialog() {
+		if (getHeavyRotationDialog == null) {
+			getHeavyRotationDialog = new RdioProgress();
+		}
+
+		if (getHeavyRotationDialog.isAdded()) {
+			return;
+		}
+
+		Bundle args = new Bundle();
+		args.putString("message", getResources().getString(R.string.getting_heavy_rotation));
+
+		getHeavyRotationDialog.setArguments(args);
+		getHeavyRotationDialog.show(getFragmentManager(), "getHeavyRotationDialog");
+	}
+
+	private void dismissGetHeavyRotationDialog() {
+		if (getHeavyRotationDialog != null) {
+			getHeavyRotationDialog.dismiss();
 		}
 	}
 }
