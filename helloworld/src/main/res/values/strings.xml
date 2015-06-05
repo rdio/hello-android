@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Hello Rdio</string>
+    <string name="title_activity_main">Main Activity</string>
+    <string name="play_audio">Load Track</string>
+    <string name="stop_audio">Stop Audio</string>
+    <string name="action_settings">Settings</string>
+    <string name="log_in">Log In</string>
+    <string name="field_hint">Track key?</string>
+    <string name="key">Blue\n
+    isPlaying\n
+        \n
+    Yellow\n
+    Buffering\n
+    \n
+    Pink\n
+    Seeking\n
+    </string>
+
+</resources>

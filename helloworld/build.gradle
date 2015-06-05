@@ -1,0 +1,30 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 21
+    buildToolsVersion "21.1.2"
+
+    defaultConfig {
+        applicationId "com.rdio.android.example.helloworld"
+        minSdkVersion 16
+        targetSdkVersion 21
+        versionCode 1
+        versionName "1.0"
+    }
+}
+
+repositories {
+    flatDir {
+        dirs 'aars'
+    }
+}
+
+dependencies {
+        compile 'com.rdio.android.sdk:androidsdk:v3.0.2@aar'
+        compile 'com.android.support:appcompat-v7:21.0.3'
+        compile 'com.google.guava:guava:18.0'
+        compile 'com.mcxiaoke.volley:library:1.0.+'
+        compile 'com.google.http-client:google-http-client-android:1.18.0-rc'
+        compile 'com.google.oauth-client:google-oauth-client:1.18.0-rc'
+        compile 'com.google.code.gson:gson:2.3.1'
+}

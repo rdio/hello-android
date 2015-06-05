@@ -1,15 +1,11 @@
-The Rdio Android SDK lets developers call the web service API, authenticate
-users if the Rdio Android app is installed, and play full song streams or
-30 second samples.
-
-Full API documentation is available: http://www.rdio.com/media/static/developer/android/docs/
+The [Rdio Android SDK](http://www.rdio.com/developers/docs/libraries/android/) lets developers call the web service API, authenticate
+users, and play full song streams or 30 second samples.
 
 To get started:
 
-* Get a developer key and secret from http://developer.rdio.com
+* Get a OAuth 2.0 client ID and secret from http://developer.rdio.com
 * Clone the sample app https://github.com/rdio/hello-android
-* Make sure you uncomment and change the appKey & appSecret to your developer key & secret
-* Download the [Rdio Android SDK and OAuth Signpost JARs](http://rdio.com/media/static/developer/android/rdio-android.tar.gz)
-* Add references to the jars into your Eclipse project
+*Yncomment and change the `CLIENT_ID`, `CLIENT_SECRET`, `REDIRECT_URI` variables
+* Build & enjoy
 
-Build & enjoy.
+Make sure to checkout the [javadocs](http://www.rdio.com/media/static/developer/android/docs/).

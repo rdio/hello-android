@@ -1,0 +1,207 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    tools:context="com.rdio.android.nativeplayback.MainActivity"
+    android:weightSum="1">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_weight="0.17"
+        android:weightSum="1">
+
+        <Button
+            android:id="@+id/login_button"
+            android:text="@string/log_in"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="login" />
+
+        <TextView
+            android:layout_width="87dp"
+            android:layout_height="50dp"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text="anonymous"
+            android:id="@+id/current_user_id"
+            android:layout_weight="0.10" />
+
+        <TextView
+            android:layout_width="67dp"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text="@string/key"
+            android:id="@+id/textView" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text="Play State ? "
+            android:id="@+id/play_state"
+            android:layout_weight="0.10" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_weight="0.92"
+        android:weightSum="1">
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="right">
+
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/action_button_new"
+            android:text="Play Source"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="loadAudio"
+            android:layout_gravity="left" />
+
+        <EditText
+            android:id="@+id/source_key_new"
+            android:layout_width="202dp"
+            android:layout_height="wrap_content"
+            android:hint="Source Key"
+            android:inputType="text" />
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <EditText
+                android:id="@+id/source_index"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:hint="Index Offset"
+                android:inputType="number" />
+
+            <EditText
+                android:id="@+id/time_offset"
+                android:layout_width="182dp"
+                android:layout_height="wrap_content"
+                android:hint="Time Offset(msec)"
+                android:inputType="number" />
+
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="201dp"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text="current track info"
+            android:id="@+id/current_track_info"
+            android:background="#005cd2ff" />
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <Button
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Stop"
+                android:onClick="stopAudio"
+                android:id="@+id/button" />
+
+            <Button
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="&lt;"
+                android:onClick="onPrev"
+                android:id="@+id/button3" />
+
+            <Button
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Play/Pause"
+                android:onClick="playPauseToggle"
+                android:id="@+id/play_pause_button" />
+
+            <Button
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=">"
+                android:onClick="onNext"
+                android:id="@+id/button4" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="fill_parent"
+            android:layout_height="49dp">
+
+            <Button
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Seek"
+                android:onClick="handleSeek"
+                android:id="@+id/seek_button" />
+
+            <EditText
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number"
+                android:ems="10"
+                android:id="@+id/seek_position_input" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text="current time info"
+            android:id="@+id/current_time_info" />
+
+        <SeekBar
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/time_progress_bar" />
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal">
+
+            <Button
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="124dp"
+                android:layout_height="wrap_content"
+                android:text="delete saved user credentials"
+                android:onClick="handleClearCreds"
+                android:id="@+id/clear_cred_button"
+                android:textSize="20px" />
+
+            <Button
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="119dp"
+                android:layout_height="wrap_content"
+                android:text="cleanup Rdio instance"
+                android:onClick="handleClear"
+                android:id="@+id/clear_button"
+                android:textSize="20px" />
+        </LinearLayout>
+    </LinearLayout>
+
+</LinearLayout>
